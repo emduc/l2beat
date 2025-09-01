@@ -9,7 +9,7 @@ export class UpdateDiffRepository extends BaseRepository {
       .insertInto('UpdateDiff')
       .values(records.map(toRow))
       .onConflict((cb) =>
-        cb.columns(['projectId', 'address', 'type']).doNothing(),
+        cb.columns(['projectId', 'address', 'type', 'chain']).doNothing(),
       )
       .execute()
 
@@ -21,10 +21,11 @@ export class UpdateDiffRepository extends BaseRepository {
     return rows.map(toRecord)
   }
 
-  async deleteByProjectAndChain(projectId: string) {
+  async deleteByProjectAndChain(projectId: string, chain: string) {
     await this.db
       .deleteFrom('UpdateDiff')
       .where('projectId', '=', projectId)
+      .where('chain', '=', chain)
       .execute()
   }
 

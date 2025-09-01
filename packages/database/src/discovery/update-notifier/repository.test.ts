@@ -1,4 +1,4 @@
-import { EthereumAddress, UnixTime } from '@l2beat/shared-pure'
+import { ChainId, EthereumAddress, UnixTime } from '@l2beat/shared-pure'
 import { expect } from 'earl'
 
 import { describeDatabase } from '../../test/database'
@@ -6,7 +6,6 @@ import type { UpdateNotifierRecord } from './entity'
 import { UpdateNotifierRepository } from './repository'
 
 const PROJECT1 = 'project1'
-const PROJECT2 = 'project2'
 
 describeDatabase(UpdateNotifierRepository.name, (db) => {
   const repository = db.updateNotifier
@@ -40,9 +39,9 @@ describeDatabase(UpdateNotifierRepository.name, (db) => {
 
   describe(UpdateNotifierRepository.prototype.getNewerThan.name, () => {
     it('finds two records newly added', async () => {
-      const ethRecord = mockRecord(PROJECT2)
-      const arbRecord1 = mockRecord(PROJECT1)
-      const arbRecord2 = mockRecord(PROJECT1)
+      const ethRecord = mockRecord(PROJECT1, ChainId.ETHEREUM)
+      const arbRecord1 = mockRecord(PROJECT1, ChainId.ARBITRUM)
+      const arbRecord2 = mockRecord(PROJECT1, ChainId.ARBITRUM)
 
       await repository.insert(ethRecord)
       const secondId = await repository.insert(arbRecord1)
@@ -50,6 +49,7 @@ describeDatabase(UpdateNotifierRepository.name, (db) => {
       const result = await repository.getNewerThan(
         NOW - 2 * UnixTime.DAY,
         PROJECT1,
+        ChainId.ARBITRUM,
       )
 
       expect(result.length).toEqual(2)
@@ -58,24 +58,26 @@ describeDatabase(UpdateNotifierRepository.name, (db) => {
     })
 
     it('does not return if does not match the range', async () => {
-      const ethRecord = mockRecord(PROJECT1)
+      const ethRecord = mockRecord(PROJECT1, ChainId.ETHEREUM)
 
       await repository.insert(ethRecord)
       const result = await repository.getNewerThan(
         NOW + 2 * UnixTime.DAY,
         PROJECT1,
+        ChainId.ETHEREUM,
       )
 
       expect(result.length).toEqual(0)
     })
 
-    it('does not return if does not match any projectId', async () => {
-      const ethRecord = mockRecord(PROJECT2)
+    it('does not return if does not match any chainId', async () => {
+      const ethRecord = mockRecord(PROJECT1, ChainId.ETHEREUM)
 
       await repository.insert(ethRecord)
       const result = await repository.getNewerThan(
         NOW - 2 * UnixTime.DAY,
         PROJECT1,
+        ChainId.ARBITRUM,
       )
 
       expect(result.length).toEqual(0)
@@ -85,6 +87,7 @@ describeDatabase(UpdateNotifierRepository.name, (db) => {
 
 function mockRecord(
   projectId: string,
+  chainId: ChainId = ChainId.ETHEREUM,
 ): Omit<UpdateNotifierRecord, 'id' | 'createdAt' | 'updatedAt'> {
   return {
     projectId,
@@ -103,5 +106,6 @@ function mockRecord(
         ],
       },
     ],
+    chainId,
   }
 }

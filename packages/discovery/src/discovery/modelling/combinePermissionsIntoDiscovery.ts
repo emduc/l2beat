@@ -68,12 +68,14 @@ export function combinePermissionsIntoDiscovery(
 
   if (!options.skipDependentDiscoveries) {
     const timestampsWithoutCurProj: DiscoveryTimestamps = {}
-    for (const [project, { timestamp }] of Object.entries(
+    for (const [project, chains] of Object.entries(
       permissionsOutput.dependentTimestamps,
     )) {
-      if (!(project === discovery.name)) {
-        timestampsWithoutCurProj[project] ??= { timestamp }
-        timestampsWithoutCurProj[project].timestamp = timestamp
+      for (const [chain, timestamp] of Object.entries(chains)) {
+        if (!(project === discovery.name && chain === discovery.chain)) {
+          timestampsWithoutCurProj[project] ??= { timestamp }
+          timestampsWithoutCurProj[project].timestamp = timestamp
+        }
       }
     }
     discovery.dependentDiscoveries = isEmpty(timestampsWithoutCurProj)

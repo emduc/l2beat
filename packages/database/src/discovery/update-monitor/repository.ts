@@ -1,12 +1,17 @@
+import type { ChainId } from '@l2beat/shared-pure'
 import { BaseRepository } from '../../BaseRepository'
 import { toRecord, toRow, type UpdateMonitorRecord } from './entity'
 
 export class UpdateMonitorRepository extends BaseRepository {
-  async findLatest(name: string): Promise<UpdateMonitorRecord | undefined> {
+  async findLatest(
+    name: string,
+    chainId: ChainId,
+  ): Promise<UpdateMonitorRecord | undefined> {
     const row = await this.db
       .selectFrom('UpdateMonitor')
       .selectAll()
       .where('projectId', '=', name)
+      .where('chainId', '=', +chainId)
       .limit(1)
       .executeTakeFirst()
 
@@ -24,7 +29,7 @@ export class UpdateMonitorRepository extends BaseRepository {
         .insertInto('UpdateMonitor')
         .values(batch)
         .onConflict((cb) =>
-          cb.columns(['projectId']).doUpdateSet((eb) => ({
+          cb.columns(['projectId', 'chainId']).doUpdateSet((eb) => ({
             blockNumber: eb.ref('excluded.blockNumber'),
             timestamp: eb.ref('excluded.timestamp'),
             discoveryJsonBlob: eb.ref('excluded.discoveryJsonBlob'),

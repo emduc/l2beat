@@ -14,10 +14,8 @@ import { ConfigReader, getDiscoveryPaths } from '@l2beat/discovery'
 import {
   AssetId,
   assert,
-  ChainSpecificAddress,
   type LegacyToken,
   UnixTime,
-  unique,
 } from '@l2beat/shared-pure'
 import uniqBy from 'lodash/uniqBy'
 import { ProjectDiscovery } from '../discovery/ProjectDiscovery'
@@ -46,12 +44,8 @@ export function getDiscoveryTokenList(chains: ChainConfig[]): LegacyToken[] {
   const tokensDiscoveryProjects = configReader.getProjectsInGroup('tokens')
 
   for (const tokenDiscovery of tokensDiscoveryProjects) {
-    const content = configReader.readDiscovery(tokenDiscovery)
-    const chainsSupportedByToken = unique(
-      content.entries.map(
-        (e) => ChainSpecificAddress.longChain(e.address) as string,
-      ),
-    )
+    const chainsSupportedByToken =
+      configReader.readAllDiscoveredChainsForProject(tokenDiscovery)
 
     for (const chain of chains) {
       if (!chainsSupportedByToken.includes(chain.name)) {

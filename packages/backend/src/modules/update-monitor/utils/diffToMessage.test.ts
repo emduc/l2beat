@@ -45,10 +45,16 @@ describe('Discord message formatting', () => {
         },
       ]
 
-      const result = diffToMessage(name, diff, BLOCK_NUMBER, dependents)
+      const result = diffToMessage(
+        name,
+        diff,
+        BLOCK_NUMBER,
+        'ethereum',
+        dependents,
+      )
 
       const expected = [
-        `***${name}*** | detected changes`,
+        `***${name}*** | detected changes on chain: ***ethereum***`,
         discoveryDiffToMarkdown(diff),
       ]
 
@@ -85,10 +91,16 @@ describe('Discord message formatting', () => {
         },
       ]
 
-      const result = diffToMessage(name, diff, BLOCK_NUMBER, dependents)
+      const result = diffToMessage(
+        name,
+        diff,
+        BLOCK_NUMBER,
+        'ethereum',
+        dependents,
+      )
 
       const expected = [
-        `***${name}*** | detected changes\n`,
+        `***${name}*** | detected changes on chain: ***ethereum***\n`,
         wrapItalic('This is a shared module, used by the following projects:'),
         ' ',
         wrapBoldAndItalic('system1, system2.'),

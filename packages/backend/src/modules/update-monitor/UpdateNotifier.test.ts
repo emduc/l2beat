@@ -3,6 +3,8 @@ import type { ProjectService } from '@l2beat/config'
 import type { Database } from '@l2beat/database'
 import type { DiscoveryDiff } from '@l2beat/discovery'
 import {
+  ChainConverter,
+  ChainId,
   EthereumAddress,
   formatAsAsciiTable,
   ProjectId,
@@ -23,6 +25,11 @@ import {
 const TIMESTAMP = UnixTime.now()
 
 describe(UpdateNotifier.name, () => {
+  const chainConverter = new ChainConverter([
+    { name: 'ethereum', chainId: ChainId.ETHEREUM },
+    { name: 'arbitrum', chainId: ChainId.ARBITRUM },
+  ])
+
   const projectService = mockObject<ProjectService>({
     getProject: mockFn().resolvesTo(undefined),
   })
@@ -50,6 +57,7 @@ describe(UpdateNotifier.name, () => {
           updateNotifier: updateNotifierRepository,
         }),
         discordClient,
+        chainConverter,
         Logger.SILENT,
         updateMessagesService,
         projectService,
@@ -71,6 +79,7 @@ describe(UpdateNotifier.name, () => {
       await updateNotifier.handleUpdate(
         project,
         changes,
+        ChainId.ETHEREUM,
         dependents,
         [],
         TIMESTAMP,
@@ -80,7 +89,7 @@ describe(UpdateNotifier.name, () => {
       expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
         1,
         [
-          `Changes: ***project-a*** at timestamp ${TIMESTAMP}\`\`\`diff`,
+          `Changes: ***project-a***:***ethereum*** at timestamp ${TIMESTAMP}\`\`\`diff`,
           `    contract Contract (${address.toString()}) {`,
           '    +++ description: None',
           '      A:',
@@ -94,7 +103,7 @@ describe(UpdateNotifier.name, () => {
       expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
         2,
         [
-          '***project-a*** | detected changes```diff',
+          '***project-a*** | detected changes on chain: ***ethereum***```diff',
           `    contract Contract (${address.toString()}) {`,
           '    +++ description: None',
           '      A:',
@@ -110,6 +119,7 @@ describe(UpdateNotifier.name, () => {
         projectId: project,
         diff: changes,
         timestamp: TIMESTAMP,
+        chainId: ChainId.ETHEREUM,
       })
     })
 
@@ -135,6 +145,7 @@ describe(UpdateNotifier.name, () => {
           updateNotifier: updateNotifierRepository,
         }),
         discordClient,
+        chainConverter,
         Logger.SILENT,
         updateMessagesService,
         projectService,
@@ -164,6 +175,7 @@ describe(UpdateNotifier.name, () => {
       await updateNotifier.handleUpdate(
         project,
         changes,
+        ChainId.ETHEREUM,
         dependents,
         [],
         TIMESTAMP,
@@ -173,7 +185,7 @@ describe(UpdateNotifier.name, () => {
       expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
         1,
         [
-          `Changes: ***project-a*** at timestamp ${TIMESTAMP}\`\`\`diff`,
+          `Changes: ***project-a***:***ethereum*** at timestamp ${TIMESTAMP}\`\`\`diff`,
           `    contract Contract (${address.toString()}) {`,
           '    +++ description: None',
           '+++ description: This should never be equal to two',
@@ -189,7 +201,7 @@ describe(UpdateNotifier.name, () => {
       expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
         2,
         [
-          '***project-a*** | detected changes```diff',
+          '***project-a*** | detected changes on chain: ***ethereum***```diff',
           `    contract Contract (${address.toString()}) {`,
           '    +++ description: None',
           '+++ description: This should never be equal to two',
@@ -207,6 +219,7 @@ describe(UpdateNotifier.name, () => {
         projectId: project,
         diff: changes,
         timestamp: TIMESTAMP,
+        chainId: ChainId.ETHEREUM,
       })
     })
 
@@ -232,6 +245,7 @@ describe(UpdateNotifier.name, () => {
           updateNotifier: updateNotifierRepository,
         }),
         discordClient,
+        chainConverter,
         Logger.SILENT,
         updateMessagesService,
         projectService,
@@ -255,28 +269,29 @@ describe(UpdateNotifier.name, () => {
       await updateNotifier.handleUpdate(
         project,
         changes,
+        ChainId.ETHEREUM,
         dependents,
         [],
         TIMESTAMP,
       )
 
       const internalMessage = [
-        `Changes: ***project-a*** at timestamp ${TIMESTAMP}\`\`\`diff`,
+        `Changes: ***project-a***:***ethereum*** at timestamp ${TIMESTAMP}\`\`\`diff`,
         `    contract Contract (${address.toString()}) {`,
         '    +++ description: None',
         '      A:',
         `-        ${'A'.repeat(1000)}`,
-        `+        ${'B'.repeat(795)}... (message too long)`,
+        `+        ${'B'.repeat(780)}... (message too long)`,
         '```',
       ].join('\n')
 
       const publicMessage = [
-        '***project-a*** | detected changes```diff',
+        '***project-a*** | detected changes on chain: ***ethereum***```diff',
         `    contract Contract (${address.toString()}) {`,
         '    +++ description: None',
         '      A:',
         `-        ${'A'.repeat(1000)}`,
-        `+        ${'B'.repeat(809)}... (message too long)`,
+        `+        ${'B'.repeat(784)}... (message too long)`,
         '```',
       ].join('\n')
 
@@ -298,6 +313,7 @@ describe(UpdateNotifier.name, () => {
         projectId: project,
         diff: changes,
         timestamp: TIMESTAMP,
+        chainId: ChainId.ETHEREUM,
       })
     })
 
@@ -322,6 +338,7 @@ describe(UpdateNotifier.name, () => {
           updateNotifier: updateNotifierRepository,
         }),
         discordClient,
+        chainConverter,
         Logger.SILENT,
         updateMessagesService,
         projectService,
@@ -343,6 +360,7 @@ describe(UpdateNotifier.name, () => {
       await updateNotifier.handleUpdate(
         project,
         changes,
+        ChainId.ETHEREUM,
         dependents,
         [],
         TIMESTAMP,
@@ -352,7 +370,7 @@ describe(UpdateNotifier.name, () => {
       expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
         1,
         [
-          `Changes: ***project-a*** at timestamp ${TIMESTAMP}\`\`\`diff`,
+          `Changes: ***project-a***:***ethereum*** at timestamp ${TIMESTAMP}\`\`\`diff`,
           `    contract Contract (${address.toString()}) {`,
           '    +++ description: None',
           '      errors:',
@@ -367,6 +385,7 @@ describe(UpdateNotifier.name, () => {
         projectId: project,
         diff: changes,
         timestamp: TIMESTAMP,
+        chainId: ChainId.ETHEREUM,
       })
     })
 
@@ -411,6 +430,7 @@ describe(UpdateNotifier.name, () => {
           updateNotifier: updateNotifierRepository,
         }),
         discordClient,
+        chainConverter,
         Logger.SILENT,
         updateMessagesService,
         mockProjectService,
@@ -434,6 +454,7 @@ describe(UpdateNotifier.name, () => {
       await updateNotifier.handleUpdate(
         project,
         changes,
+        ChainId.ETHEREUM,
         dependents,
         [],
         TIMESTAMP,
@@ -448,7 +469,7 @@ describe(UpdateNotifier.name, () => {
       expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
         1,
         [
-          `Changes: ***project-a*** at timestamp ${TIMESTAMP}`,
+          `Changes: ***project-a***:***ethereum*** at timestamp ${TIMESTAMP}`,
           '*Tracked transactions might be affected.*```diff',
           `    contract Contract (${address.toString()}) {`,
           '    +++ description: None',
@@ -463,7 +484,7 @@ describe(UpdateNotifier.name, () => {
       expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
         2,
         [
-          '***project-a*** | detected changes```diff',
+          '***project-a*** | detected changes on chain: ***ethereum***```diff',
           `    contract Contract (${address.toString()}) {`,
           '    +++ description: None',
           '      A:',
@@ -517,6 +538,7 @@ describe(UpdateNotifier.name, () => {
           updateNotifier: updateNotifierRepository,
         }),
         discordClient,
+        chainConverter,
         Logger.SILENT,
         updateMessagesService,
         mockProjectService,
@@ -540,6 +562,7 @@ describe(UpdateNotifier.name, () => {
       await updateNotifier.handleUpdate(
         project,
         changes,
+        ChainId.ETHEREUM,
         dependents,
         [],
         TIMESTAMP,
@@ -555,7 +578,7 @@ describe(UpdateNotifier.name, () => {
       expect(discordClient.sendMessage).toHaveBeenNthCalledWith(
         1,
         [
-          `Changes: ***project-a*** at timestamp ${TIMESTAMP}\`\`\`diff`,
+          `Changes: ***project-a***:***ethereum*** at timestamp ${TIMESTAMP}\`\`\`diff`,
           `    contract Contract (${address.toString()}) {`,
           '    +++ description: None',
           '      A:',
@@ -586,6 +609,7 @@ describe(UpdateNotifier.name, () => {
       const updateNotifier = new UpdateNotifier(
         mockObject<Database>({ updateNotifier: updateNotifierRepository }),
         discordClient,
+        chainConverter,
         Logger.SILENT,
         updateMessagesService,
         projectService,
@@ -593,18 +617,34 @@ describe(UpdateNotifier.name, () => {
       )
 
       const reminders = {
-        ['project-a']: { severityCounts: { low: 1, high: 2, unknown: 4 } },
-        ['project-b']: { severityCounts: { low: 0, high: 0, unknown: 12 } },
-        ['project-c']: { severityCounts: { low: 0, high: 3, unknown: 0 } },
-        ['project-d']: { severityCounts: { low: 0, high: 3, unknown: 4 } },
+        ['project-a']: [
+          {
+            chainName: 'ethereum',
+            severityCounts: { low: 1, high: 2, unknown: 4 },
+          },
+          {
+            chainName: 'arbitrum',
+            severityCounts: { low: 0, high: 0, unknown: 12 },
+          },
+        ],
+        ['project-b']: [
+          {
+            chainName: 'ethereum',
+            severityCounts: { low: 0, high: 3, unknown: 0 },
+          },
+          {
+            chainName: 'optimism',
+            severityCounts: { low: 0, high: 3, unknown: 4 },
+          },
+        ],
       }
       const timestamp = UnixTime.toStartOf(TIMESTAMP, 'day') + 6 * UnixTime.HOUR
-      const headers = ['Project', 'High', 'Low', '???']
+      const headers = ['Project', 'Chain', 'High', 'Low', '???']
       const rows = [
-        ['project-d', '3', '', '4'],
-        ['project-c', '3', '', ''],
-        ['project-a', '2', '1', '4'],
-        ['project-b', '', '', '12'],
+        ['project-b', 'optimism', '3', '', '4'],
+        ['project-b', 'ethereum', '3', '', ''],
+        ['project-a', 'ethereum', '2', '1', '4'],
+        ['project-a', 'arbitrum', '', '', '12'],
       ]
       const table = formatAsAsciiTable(headers, rows)
       const templatizationStatus = await generateTemplatizedStatus()
@@ -620,7 +660,8 @@ describe(UpdateNotifier.name, () => {
     })
 
     it('truncates daily reminder', async () => {
-      const randomReminder = (): DailyReminderChainEntry => ({
+      const randomReminder = (chain: string): DailyReminderChainEntry => ({
+        chainName: chain,
         severityCounts: { low: 0, high: 0, unknown: 0 },
       })
 
@@ -641,6 +682,7 @@ describe(UpdateNotifier.name, () => {
       const updateNotifier = new UpdateNotifier(
         mockObject<Database>({ updateNotifier: updateNotifierRepository }),
         discordClient,
+        chainConverter,
         Logger.SILENT,
         updateMessagesService,
         projectService,
@@ -648,9 +690,27 @@ describe(UpdateNotifier.name, () => {
       )
 
       const reminders = {
-        ['project-a']: randomReminder(),
-        ['project-b']: randomReminder(),
-        ['project-c']: randomReminder(),
+        ['project-a']: [
+          randomReminder('ethereum'),
+          randomReminder('arbitrum'),
+          randomReminder('steelchain'),
+          randomReminder('aluminiumchain'),
+          randomReminder('copperchain'),
+          randomReminder('chainwhip'),
+        ],
+        ['project-b']: [
+          randomReminder('ethereum'),
+          randomReminder('optimism'),
+          randomReminder(
+            'verylongchainnametobumpupthebytecountthatgoesforeverandeverandomgcanyoumakeitalittlesmallerpleaseeeee',
+          ),
+        ],
+        ['project-c']: [
+          randomReminder('steelchain'),
+          randomReminder('aluminiumchain'),
+          randomReminder('copperchain'),
+          randomReminder('chainwhip'),
+        ],
       }
       const timestamp =
         UnixTime.toStartOf(UnixTime.now(), 'day') + 6 * UnixTime.HOUR
@@ -674,6 +734,7 @@ describe(UpdateNotifier.name, () => {
       const updateNotifier = new UpdateNotifier(
         mockObject<Database>({ updateNotifier: updateNotifierRepository }),
         discordClient,
+        chainConverter,
         Logger.SILENT,
         updateMessagesService,
         projectService,
@@ -704,6 +765,7 @@ describe(UpdateNotifier.name, () => {
       const updateNotifier = new UpdateNotifier(
         mockObject<Database>({ updateNotifier: updateNotifierRepository }),
         discordClient,
+        chainConverter,
         Logger.SILENT,
         updateMessagesService,
         projectService,

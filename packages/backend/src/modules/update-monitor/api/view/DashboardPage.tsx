@@ -7,7 +7,7 @@ import { Page } from './components/Page'
 import { reactToHtml } from './components/reactToHtml'
 
 interface DashboardPageProps {
-  projects: DashboardProject[]
+  projects: Record<string, DashboardProject[]>
 }
 
 function DashboardPage(props: DashboardPageProps) {
@@ -15,32 +15,56 @@ function DashboardPage(props: DashboardPageProps) {
     <Page title="Discovery">
       <table style={{ width: '100%', wordBreak: 'break-word' }}>
         <tbody>
-          <>
-            {props.projects.map((project, index) => (
+          {Object.entries(props.projects).map(([chainName, projects]) => (
+            <>
               <tr
-                key={index}
-                style={{ padding: '0px', textAlign: 'left', width: '100%' }}
+                key={chainName}
+                style={{
+                  padding: '0px',
+                  width: '1200px',
+                  textAlign: 'left',
+                  background: '#363636',
+                }}
               >
-                <TableData
-                  value={
-                    project.changes.diff && project.changes.diff.length > 0 ? (
-                      <ChangedDetectedDropdown
-                        project={project}
-                        trackedTxsAffected={project.changes.trackedTxsAffected}
-                        summary={
-                          <div
-                            style={{ color: '#cecbc4' }}
-                          >{`${project.name} (Changes Detected!)`}</div>
-                        }
-                      />
-                    ) : (
-                      <div>{project.name}</div>
-                    )
-                  }
-                />
+                <th
+                  colSpan={12}
+                  scope="colgroup"
+                  style={{ padding: '0px', textAlign: 'left', width: '1200px' }}
+                >
+                  {`Chain ${chainName}`}
+                </th>
               </tr>
-            ))}
-          </>
+              {projects.map((project, index) => (
+                <>
+                  <tr
+                    key={index}
+                    style={{ padding: '0px', textAlign: 'left', width: '100%' }}
+                  >
+                    <TableData
+                      value={
+                        project.changes.diff &&
+                        project.changes.diff.length > 0 ? (
+                          <ChangedDetectedDropdown
+                            project={project}
+                            trackedTxsAffected={
+                              project.changes.trackedTxsAffected
+                            }
+                            summary={
+                              <div
+                                style={{ color: '#cecbc4' }}
+                              >{`${project.name} (Changes Detected!)`}</div>
+                            }
+                          />
+                        ) : (
+                          <div>{project.name}</div>
+                        )
+                      }
+                    />
+                  </tr>
+                </>
+              ))}
+            </>
+          ))}
         </tbody>
       </table>
     </Page>

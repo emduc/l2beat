@@ -7,6 +7,7 @@ import {
   type DiscoveryOutput,
   diffDiscovery,
 } from '@l2beat/discovery'
+import { ChainId } from '@l2beat/shared-pure'
 import { canTrackedTxsBeAffected } from '../../UpdateNotifier'
 
 export interface DashboardProject {
@@ -22,12 +23,14 @@ export async function getDashboardProjects(
   configs: ConfigRegistry[],
   configReader: ConfigReader,
   db: Database,
+  chain: string,
+  chainId: number,
   projectService: ProjectService,
 ): Promise<DashboardProject[]> {
   const projects: DashboardProject[] = []
   for (const config of configs) {
-    const discovery = configReader.readDiscovery(config.name)
-    const diff: DiscoveryDiff[] = await getDiff(db, discovery)
+    const discovery = configReader.readDiscovery(config.name, chain)
+    const diff: DiscoveryDiff[] = await getDiff(db, discovery, chainId)
     const trackedTxsAffected = await canTrackedTxsBeAffected(
       projectService,
       config.name,
@@ -51,8 +54,12 @@ export async function getDashboardProjects(
 export async function getDiff(
   db: Database,
   discovery: DiscoveryOutput,
+  chainId: number,
 ): Promise<DiscoveryDiff[]> {
-  const latest = await db.updateMonitor.findLatest(discovery.name)
+  const latest = await db.updateMonitor.findLatest(
+    discovery.name,
+    ChainId(chainId),
+  )
 
   let diff: DiscoveryDiff[] = []
   if (latest?.discovery.entries) {

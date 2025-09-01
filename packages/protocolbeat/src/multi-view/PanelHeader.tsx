@@ -75,8 +75,8 @@ async function formatContractCode(
   project: string,
   address: string | undefined,
   _name?: string,
+  chain?: string,
 ) {
-  const chain = address?.split(':')[0]
   if (!address) return []
   const sources = (await getCode(project, address))?.sources ?? []
   const result: string[] = []
@@ -94,12 +94,14 @@ async function formatContractCode(
 
 interface ContractValues {
   address: string
-  chain: string
   fields?: Field[]
 }
 
-function formatContractValues(contract: ContractValues, blockNumber?: number) {
-  const chain = contract.chain
+function formatContractValues(
+  contract: ContractValues,
+  blockNumber?: number,
+  chain?: string,
+) {
   if (contract.fields === undefined || contract.fields.length === 0) {
     return []
   }
@@ -121,12 +123,10 @@ function formatContractValues(contract: ContractValues, blockNumber?: number) {
 
 interface ContractAbi {
   address: string
-  chain: string
   abis?: ApiAbi[]
 }
 
-function formatContractAbi(contract: ContractAbi) {
-  const chain = contract.chain
+function formatContractAbi(contract: ContractAbi, chain?: string) {
   if (contract.abis === undefined || contract.abis.length === 0) {
     return []
   }
@@ -177,8 +177,12 @@ const toClipboard = async (
       const projectData = await getProject(project)
       const contract = findSelected(projectData.entries, selectedAddress)
       if (!contract) break
-      const fields = formatContractValues(contract, contract.blockNumber)
-      const abis = formatContractAbi(contract)
+      const fields = formatContractValues(
+        contract,
+        contract.blockNumber,
+        contract.chain,
+      )
+      const abis = formatContractAbi(contract, contract.chain)
       message = [...fields, ...abis]
       break
     }
@@ -194,12 +198,14 @@ const toClipboard = async (
             project,
             contract.address,
             contract.name,
+            chain.chain,
           )
           const values = formatContractValues(
             contract,
-            chain.blockNumbers[contract.chain],
+            chain.blockNumber,
+            chain.chain,
           )
-          const abi = formatContractAbi(contract)
+          const abi = formatContractAbi(contract, chain.chain)
           message.push(...code, ...values, ...abi)
         }
       }
@@ -218,12 +224,14 @@ const toClipboard = async (
             project,
             contract.address,
             contract.name,
+            chain.chain,
           )
           const values = formatContractValues(
             contract,
-            chain.blockNumbers[contract.chain],
+            chain.blockNumber,
+            chain.chain,
           )
-          const abi = formatContractAbi(contract)
+          const abi = formatContractAbi(contract, chain.chain)
           message.push(...code, ...values, ...abi)
         }
       }

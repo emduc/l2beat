@@ -15,45 +15,55 @@ interface TemplateFieldRelation {
 
 interface ProjectChain {
   project: string
+  chain: string
 }
 
 export const AdriansCommand = command({
   name: 'adriansCommand',
   description: 'Builds a knowledge base about a project to be used with LLMs.',
   args: {
+    chain: positional({
+      type: string,
+      displayName: 'chain',
+    }),
     project: positional({
       type: string,
       displayName: 'project',
     }),
   },
-  handler: ({ project }) => {
+  handler: ({ chain, project }) => {
     const paths = getDiscoveryPaths()
     const configReader = new ConfigReader(paths.discovery)
 
-    const allDiscoveries = getAllDiscoveriesExcept(configReader, project)
+    const allDiscoveries = getAllDiscoveriesExcept(configReader, {
+      chain,
+      project,
+    })
     const relations = buildKnowledgeBase(allDiscoveries)
 
-    const targetDiscovery = configReader.readDiscovery(project)
+    const targetDiscovery = configReader.readDiscovery(project, chain)
     const suggestions = generateSuggestions(targetDiscovery, relations)
 
-    outputSuggestions(suggestions, project)
+    outputSuggestions(suggestions, project, chain)
   },
 })
 
 function getAllDiscoveriesExcept(
   configReader: ConfigReader,
-  toExclude: string,
+  toExclude: ProjectChain,
 ): DiscoveryOutput[] {
   const allProjects = configReader.readAllDiscoveredProjects()
 
   const discoveries: DiscoveryOutput[] = []
-  for (const project of allProjects) {
-    if (project === toExclude) {
-      continue
-    }
+  for (const { chains, project } of allProjects) {
+    for (const chain of chains) {
+      if (chain === toExclude.chain || project === toExclude.project) {
+        continue
+      }
 
-    const discovery = configReader.readDiscovery(project)
-    discoveries.push(discovery)
+      const discovery = configReader.readDiscovery(project, chain)
+      discoveries.push(discovery)
+    }
   }
 
   return discoveries
@@ -105,13 +115,14 @@ function updateRelations(
   if (existingRelation) {
     existingRelation.foundIn.push({
       project: discovery.name,
+      chain: discovery.chain,
     })
   } else {
     relations.push({
       sourceTemplate,
       sourceField: field,
       targetTemplate,
-      foundIn: [{ project: discovery.name }],
+      foundIn: [{ project: discovery.name, chain: discovery.chain }],
     })
   }
 }
@@ -156,7 +167,7 @@ function generateMissingContractSuggestion(
   suggestion += `  - field "${relation.sourceField}" is not pointing to an entry,\n`
   suggestion += `  - but in these projects points at an entry with template ${relation.targetTemplate}. Please investigate.\n`
   suggestion += relation.foundIn
-    .map(({ project }) => `    - ${project}`)
+    .map(({ project, chain }) => `    - ${project} on ${chain}`)
     .join('\n')
   return suggestion
 }
@@ -170,16 +181,20 @@ function generateMismatchedTemplateSuggestion(
   suggestion += `  - field "${relation.sourceField}" points at ${targetContract.name} with template ${targetContract.template}\n`
   suggestion += `  - but in these projects it points at an entry with template ${relation.targetTemplate}. Please investigate.\n`
   suggestion += relation.foundIn
-    .map(({ project }) => `    - ${project}`)
+    .map(({ project, chain }) => `    - ${project} on ${chain}`)
     .join('\n')
   return suggestion
 }
 
-function outputSuggestions(suggestions: string[], project: string) {
+function outputSuggestions(
+  suggestions: string[],
+  project: string,
+  chain: string,
+) {
   if (suggestions.length === 0) {
-    console.log(`No suggestions found for ${project}`)
+    console.log(`No suggestions found for ${project} on ${chain}`)
   } else {
-    console.log(`Suggestions for ${project}:`)
+    console.log(`Suggestions for ${project} on ${chain}:`)
     suggestions.forEach((s) => console.log(s))
   }
 }

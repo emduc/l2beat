@@ -1,6 +1,6 @@
 import type { UpdateNotifierRecord } from '@l2beat/database'
 import type { DiscoveryDiff } from '@l2beat/discovery'
-import { EthereumAddress, UnixTime } from '@l2beat/shared-pure'
+import { ChainId, EthereumAddress, UnixTime } from '@l2beat/shared-pure'
 import { expect } from 'earl'
 import { fieldThrottleDiff } from './fieldThrottleDiff'
 
@@ -126,5 +126,6 @@ function mockRecord(diff: DiscoveryDiff[]): UpdateNotifierRecord {
     projectId: 'project',
     timestamp: 24392345,
     diff: diff,
+    chainId: ChainId.ETHEREUM,
   }
 }

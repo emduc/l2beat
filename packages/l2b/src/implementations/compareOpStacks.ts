@@ -15,12 +15,15 @@ export function analyzeAllOpStackChains(
   paths: DiscoveryPaths,
 ) {
   const configReader = new ConfigReader(paths.discovery)
-  const allL2s = configReader.readAllDiscoveredProjects()
+  const allL2s = configReader
+    .readAllDiscoveredProjects()
+    .filter((p) => p.chains.includes('ethereum'))
+    .map((p) => p.project)
 
   const opStackChains = [] as OpStackProject[]
 
   for (const l2 of allL2s) {
-    const discovery = configReader.readDiscovery(l2)
+    const discovery = configReader.readDiscovery(l2, 'ethereum')
 
     const L2OutputOracle = discovery.entries.find(
       (obj) => obj.name === 'L2OutputOracle',

@@ -4,13 +4,15 @@ import type { ProjectDiscoveryInfo } from '../types'
 export function getDiscoveryInfo(
   discoveries: ProjectDiscovery[],
 ): ProjectDiscoveryInfo {
-  let baseTimestamp = undefined
+  const timestampPerChain: Record<string, number> = {}
 
   for (const discovery of discoveries) {
-    baseTimestamp = Math.min(
-      baseTimestamp ?? Number.POSITIVE_INFINITY,
-      discovery.maxTimestamp,
-    )
+    for (const [chain, timestamp] of Object.entries(
+      discovery.timestampPerChain,
+    )) {
+      timestampPerChain[chain] ??= Number.POSITIVE_INFINITY
+      timestampPerChain[chain] = Math.min(timestampPerChain[chain], timestamp)
+    }
   }
 
   return {
@@ -18,7 +20,7 @@ export function getDiscoveryInfo(
     isDiscoDriven: false,
     permissionsDiscoDriven: false,
     contractsDiscoDriven: false,
-    baseTimestamp,
+    timestampPerChain,
     hasDiscoUi: false,
   }
 }

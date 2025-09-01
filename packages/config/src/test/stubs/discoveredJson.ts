@@ -40,6 +40,7 @@ export const contractStub: EntryParameters = {
 
 export const discoveredJsonStub: DiscoveryOutput = {
   name: 'mockedproject',
+  chain: 'ethereum',
   timestamp: 1670682767,
   entries: [
     contractStub,

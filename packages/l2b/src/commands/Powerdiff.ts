@@ -111,16 +111,24 @@ const PowerdiffDiscovery = command({
   description:
     'Compare two directories recursively using difftastic and serve the result.',
   args: {
+    chain: positional({ type: string, displayName: 'chain' }),
     project: positional({ type: string, displayName: 'project' }),
     difftasticPath,
     mode,
     displayMode,
     diffContext,
   },
-  handler: ({ project, difftasticPath, mode, displayMode, diffContext }) => {
+  handler: ({
+    chain,
+    project,
+    difftasticPath,
+    mode,
+    displayMode,
+    diffContext,
+  }) => {
     const paths = getDiscoveryPaths()
     const configReader = new ConfigReader(paths.discovery)
-    const projectPath = configReader.getProjectPath(project)
+    const projectPath = configReader.getProjectChainPath(project, chain)
     const contents = readdirSync(projectPath)
 
     const flatAt = contents.filter((f) => f.startsWith('.flat@'))

@@ -56,39 +56,53 @@ export class ProjectDiscovery {
     public readonly projectName: string,
     public readonly configReader = new ConfigReader(paths.discovery),
   ) {
-    this.discoveries = []
-    let dependentDiscoveries = {}
-    try {
-      const projectDiscovery = configReader.readDiscovery(projectName)
-      this.discoveries.push(projectDiscovery)
-      dependentDiscoveries = projectDiscovery.dependentDiscoveries ?? {}
-    } catch {}
+    const chains = configReader.readAllDiscoveredChainsForProject(projectName)
+    const projectDiscoveries = chains.map((chain) =>
+      configReader.readDiscovery(projectName, chain),
+    )
 
-    const alreadyAdded = new Set<string>(this.discoveries.map((x) => x.name))
+    this.discoveries = [...projectDiscoveries]
+    const alreadyAdded = new Set<string>(
+      projectDiscoveries.map((d) => `${d.chain}:${d.name}`),
+    )
     for (const discovery of this.discoveries) {
       for (const sharedModule of discovery.sharedModules ?? []) {
-        const key = sharedModule
+        const key = `${discovery.chain}:${sharedModule}`
         if (alreadyAdded.has(key)) continue
 
         try {
-          this.discoveries.push(configReader.readDiscovery(sharedModule))
+          this.discoveries.push(
+            configReader.readDiscovery(sharedModule, discovery.chain),
+          )
         } catch {}
         alreadyAdded.add(key)
       }
     }
 
     this.projectAndDependentDiscoveries = [...this.discoveries]
-    this.projectAndDependentDiscoveries.push(
-      ...Object.keys(dependentDiscoveries).flatMap((dependentProjectName) => {
-        if (dependentProjectName === projectName) return []
-        return configReader.readDiscovery(dependentProjectName)
-      }),
-    )
+    for (const discovery of projectDiscoveries) {
+      this.projectAndDependentDiscoveries.push(
+        ...Object.entries(discovery.dependentDiscoveries ?? {}).flatMap(
+          ([dependentProjectName, chains]) => {
+            if (dependentProjectName === projectName) return []
+            return Object.keys(chains).map((chain) =>
+              configReader.readDiscovery(dependentProjectName, chain),
+            )
+          },
+        ),
+      )
+    }
     this.permissionRegistry = new PermissionsFromDiscovery(this)
   }
 
-  get maxTimestamp(): number {
-    return Math.max(...this.discoveries.map((d) => d.timestamp))
+  get timestampPerChain(): Record<string, number> {
+    const grouped = groupBy(this.discoveries, (d) => d.chain)
+    return Object.fromEntries(
+      Object.entries(grouped).map(([chain, discovery]) => [
+        chain,
+        Math.max(...discovery.map((d) => d.timestamp)),
+      ]),
+    )
   }
 
   getName(address: ChainSpecificAddress): string {

@@ -1105,7 +1105,7 @@ export interface ProjectDiscoveryInfo {
   isDiscoDriven: boolean
   permissionsDiscoDriven: boolean
   contractsDiscoDriven: boolean
-  baseTimestamp: number | undefined
+  timestampPerChain: Record<string, number>
   hasDiscoUi: boolean
 }
 // #endregion

@@ -362,11 +362,11 @@ export function adjustDiscoveryInfo(
     contractsDiscoDriven,
     permissionsDiscoDriven,
     isDiscoDriven: contractsDiscoDriven && permissionsDiscoDriven,
-    baseTimestamp: project.discoveryInfo.baseTimestamp,
+    timestampPerChain: project.discoveryInfo.timestampPerChain,
     // This is implicit assumption that if there are timestamps per chain, then
     // the project has disco ui. It's cause if there are some keys it means
     // that the project has discovered.json file.
-    hasDiscoUi: project.discoveryInfo.baseTimestamp !== undefined,
+    hasDiscoUi: Object.keys(project.discoveryInfo.timestampPerChain).length > 0,
   }
 }
 

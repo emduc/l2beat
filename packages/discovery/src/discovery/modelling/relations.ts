@@ -1,4 +1,4 @@
-import { ChainSpecificAddress } from '@l2beat/shared-pure'
+import type { ChainSpecificAddress } from '@l2beat/shared-pure'
 import type {
   ContractPermission,
   RawPermissionConfiguration,
@@ -76,12 +76,13 @@ permissionCondition(
 }
 
 export function contractValuesForInterpolation(
+  chain: string,
   structureEntry: StructureEntry,
   contractPermission: ContractPermission | undefined,
 ): Record<string, ContractValue | undefined> {
   const values = structureEntry.values
   return {
-    '$.chain': ChainSpecificAddress.chain(structureEntry.address),
+    '$.chain': chain,
     '$.address': structureEntry.address.toLowerCase(),
     '$.canActIndependently': contractPermission?.canActIndependently,
     ...values,
@@ -89,6 +90,7 @@ export function contractValuesForInterpolation(
 }
 
 export function buildPermissionsModel(
+  chain: string,
   contractPermission: ContractPermission,
   structureEntry: StructureEntry,
   addressToNameMap: Record<string, string>,
@@ -96,6 +98,7 @@ export function buildPermissionsModel(
   const relationsModel: string[] = []
 
   const contractValues = contractValuesForInterpolation(
+    chain,
     structureEntry,
     contractPermission,
   )

@@ -43,6 +43,12 @@ export const RefreshDiscovery = command({
       short: 'p',
       description: 'exclude projects from discovery, comma separated.',
     }),
+    excludeChains: option({
+      type: optional(Separated(string)),
+      long: 'exclude-chains',
+      short: 'c',
+      description: 'exclude chains from discovery, comma separated.',
+    }),
     message: option({
       type: optional(string),
       long: 'message',
@@ -78,22 +84,27 @@ export const RefreshDiscovery = command({
       ? configReader.getProjectsInGroup(args.group)
       : null
 
-    const projectChain = configReader
+    const chainConfigs = configReader
       .readAllDiscoveredProjects()
-      .filter((project) => (projects ? projects.includes(project) : true))
-      .filter((project) =>
-        args.excludeProjects ? !args.excludeProjects.includes(project) : true,
+      .filter((entry) => (projects ? projects.includes(entry.project) : true))
+      .filter((entry) =>
+        args.excludeProjects
+          ? !args.excludeProjects.includes(entry.project)
+          : true,
       )
-      .flatMap((project) => configReader.readConfig(project))
+      .flatMap(({ project }) => configReader.readConfig(project))
 
     const toRefresh: { config: ConfigRegistry; reason: string }[] = []
     let foundFrom = false
 
+    if (args.excludeChains?.length) {
+      logger.info('Excluding chains:', args.excludeChains?.join(', '))
+    }
     if (args.excludeProjects?.length) {
       logger.info('Excluding projects:', args.excludeProjects?.join(', '))
     }
 
-    for (const config of projectChain) {
+    for (const config of chainConfigs) {
       if (args.from !== undefined) {
         if (!foundFrom && `${config.name}` === args.from) {
           foundFrom = true
@@ -102,12 +113,16 @@ export const RefreshDiscovery = command({
           continue
         }
       }
-      const discovery = configReader.readDiscovery(config.name)
-      const needsRefreshReason = args.all
-        ? '--all flag was provided'
-        : templateService.discoveryNeedsRefresh(discovery, config)
-      if (needsRefreshReason !== undefined) {
-        toRefresh.push({ config, reason: needsRefreshReason })
+      const chains = configReader.readAllDiscoveredChainsForProject(config.name)
+      for (const chain of chains) {
+        const discovery = configReader.readDiscovery(config.name, chain)
+        const needsRefreshReason = args.all
+          ? '--all flag was provided'
+          : templateService.discoveryNeedsRefresh(discovery, config)
+        if (needsRefreshReason !== undefined) {
+          toRefresh.push({ config, reason: needsRefreshReason })
+          break
+        }
       }
     }
 

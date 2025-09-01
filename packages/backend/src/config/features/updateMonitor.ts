@@ -6,7 +6,6 @@ import {
   getDiscoveryPaths,
   getMulticall3Config,
 } from '@l2beat/discovery'
-import { ChainSpecificAddress } from '@l2beat/shared-pure'
 import type { DiscordConfig, UpdateMonitorConfig } from '../Config'
 import type { FeatureFlags } from '../FeatureFlags'
 
@@ -21,10 +20,7 @@ export function getUpdateMonitorConfig(
 
   const allChains = [
     ...new Set(
-      configReader
-        .readAllDiscoveredProjects()
-        .flatMap((project) => configReader.readDiscovery(project).entries)
-        .map((entry) => ChainSpecificAddress.longChain(entry.address)),
+      configReader.readAllDiscoveredProjects().flatMap((x) => x.chains),
     ),
   ]
   const enabledChains = allChains.filter((chain) =>

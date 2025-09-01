@@ -4,6 +4,8 @@ import type { Database } from '@l2beat/database'
 import { type DiscoveryDiff, discoveryDiffToMarkdown } from '@l2beat/discovery'
 import {
   assert,
+  type ChainConverter,
+  type ChainId,
   type EthereumAddress,
   formatAsAsciiTable,
   ProjectId,
@@ -22,6 +24,7 @@ import { filterDiff } from './utils/filterDiff'
 import { isNineAM } from './utils/isNineAM'
 
 export interface DailyReminderChainEntry {
+  chainName: string
   severityCounts: {
     low: number
     high: number
@@ -36,6 +39,7 @@ export class UpdateNotifier {
   constructor(
     private readonly db: Database,
     private readonly discordClient: DiscordClient | undefined,
+    private readonly chainConverter: ChainConverter,
     private readonly logger: Logger,
     private readonly updateMessagesService: UpdateMessagesService,
     private readonly projectService: ProjectService,
@@ -47,6 +51,7 @@ export class UpdateNotifier {
   async handleUpdate(
     name: string,
     diff: DiscoveryDiff[],
+    chainId: ChainId,
     dependents: string[],
     unknownContracts: EthereumAddress[],
     timestamp: UnixTime,
@@ -56,12 +61,14 @@ export class UpdateNotifier {
       projectId: name,
       diff,
       timestamp: timestamp,
+      chainId: chainId,
     })
 
     const timeFence = UnixTime.now() - HOUR_RANGE * UnixTime.HOUR
     const previousRecords = await this.db.updateNotifier.getNewerThan(
       timeFence,
       name,
+      chainId,
     )
 
     const throttled = fieldThrottleDiff(previousRecords, diff, OCCURRENCE_LIMIT)
@@ -85,6 +92,7 @@ export class UpdateNotifier {
       name,
       throttled,
       timestamp,
+      this.chainConverter.toName(chainId),
       dependents,
       nonce,
       trackedTxsAffected,
@@ -104,6 +112,7 @@ export class UpdateNotifier {
       name,
       filteredDiff,
       timestamp,
+      this.chainConverter.toName(chainId),
       dependents,
       undefined,
     )
@@ -113,6 +122,7 @@ export class UpdateNotifier {
 
     await this.updateMessagesService.storeAndPrune({
       projectId: name,
+      chain: this.chainConverter.toName(chainId),
       message: filteredWebMessage,
       timestamp,
     })
@@ -158,7 +168,7 @@ export class UpdateNotifier {
   }
 
   async sendDailyReminder(
-    reminders: Record<string, DailyReminderChainEntry>,
+    reminders: Record<string, DailyReminderChainEntry[]>,
     timestamp: UnixTime,
   ): Promise<void> {
     if (!isNineAM(timestamp, 'CET')) {
@@ -199,14 +209,22 @@ export class UpdateNotifier {
 }
 
 function formatRemindersAsTable(
-  reminders: Record<string, DailyReminderChainEntry>,
+  reminders: Record<string, DailyReminderChainEntry[]>,
 ): string {
-  const headers = ['Project', 'High', 'Low', '???']
+  const headers = ['Project', 'Chain', 'High', 'Low', '???']
 
   const flat = flattenReminders(reminders)
   const sorted = flat.sort((a, b) => {
-    const { low: aLow, high: aHigh, unknown: aUnknown } = a.entry.severityCounts
-    const { low: bLow, high: bHigh, unknown: bUnknown } = b.entry.severityCounts
+    const {
+      low: aLow,
+      high: aHigh,
+      unknown: aUnknown,
+    } = a.chainEntry.severityCounts
+    const {
+      low: bLow,
+      high: bHigh,
+      unknown: bUnknown,
+    } = b.chainEntry.severityCounts
 
     const aSum = aHigh * 1e6 + aLow * 1e3 + aUnknown
     const bSum = bHigh * 1e6 + bLow * 1e3 + bUnknown
@@ -214,10 +232,11 @@ function formatRemindersAsTable(
     return bSum - aSum
   })
 
-  const rows = sorted.map(({ projectId, entry }) => {
-    const { severityCounts: s } = entry
+  const rows = sorted.map(({ projectId, chainEntry }) => {
+    const { chainName, severityCounts: s } = chainEntry
     return [
       projectId,
+      chainName,
       s.high === 0 ? '' : s.high.toString(),
       s.low === 0 ? '' : s.low.toString(),
       s.unknown === 0 ? '' : s.unknown.toString(),
@@ -227,17 +246,21 @@ function formatRemindersAsTable(
   return formatAsAsciiTable(headers, rows)
 }
 
-function flattenReminders(reminders: Record<string, DailyReminderChainEntry>): {
+function flattenReminders(
+  reminders: Record<string, DailyReminderChainEntry[]>,
+): {
   projectId: string
-  entry: DailyReminderChainEntry
+  chainEntry: DailyReminderChainEntry
 }[] {
   const entries: {
     projectId: string
-    entry: DailyReminderChainEntry
+    chainEntry: DailyReminderChainEntry
   }[] = []
 
-  Object.entries(reminders).forEach(([key, value]) => {
-    entries.push({ projectId: key, entry: value })
+  Object.entries(reminders).forEach(([key, values]) => {
+    values.forEach((chainEntry) => {
+      entries.push({ projectId: key, chainEntry })
+    })
   })
 
   return entries

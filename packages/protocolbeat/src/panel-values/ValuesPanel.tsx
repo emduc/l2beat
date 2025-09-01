@@ -39,7 +39,11 @@ export function ValuesPanel() {
     <div className="h-full w-full overflow-x-auto">
       {!selected && <ActionNeededState message="Select a contract" />}
       {selected && (
-        <Display selected={selected} blockNumber={selected.blockNumber} />
+        <Display
+          selected={selected}
+          chain={selected.chain}
+          blockNumber={selected.blockNumber}
+        />
       )}
     </div>
   )
@@ -47,13 +51,13 @@ export function ValuesPanel() {
 
 function Display({
   selected,
+  chain,
   blockNumber,
 }: {
   selected: ApiProjectContract | ApiAddressEntry
+  chain: string
   blockNumber: number
 }) {
-  const chain = selected.chain
-
   const { project } = useParams()
   if (!project) {
     throw new Error('Cannot use component outside of project page!')

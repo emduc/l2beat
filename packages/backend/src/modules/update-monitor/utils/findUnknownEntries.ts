@@ -5,8 +5,9 @@ export function findUnknownEntries(
   name: string,
   entries: EntryParameters[],
   configReader: ConfigReader,
+  chain: string,
 ): EthereumAddress[] {
-  const committed = configReader.readDiscovery(name)
+  const committed = configReader.readDiscovery(name, chain)
 
   const unknownContracts = entries
     .filter((entry) => {

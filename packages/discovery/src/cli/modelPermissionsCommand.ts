@@ -8,6 +8,7 @@ import {
 import { combinePermissionsIntoDiscovery } from '../discovery/modelling/combinePermissionsIntoDiscovery'
 import {
   DiscoveryRegistry,
+  getDependenciesToDiscoverForProject,
   modelPermissions,
 } from '../discovery/modelling/modelPermissions'
 import { saveDiscoveredJson } from '../discovery/output/saveDiscoveryResult'
@@ -29,12 +30,18 @@ export async function modelPermissionsCommand(
 
   logger.info(`Modelling: ${project}`)
   logger.info('Reading all related discoveries:')
-  const dependencies: string[] = [project]
+  const dependencies = getDependenciesToDiscoverForProject(
+    project,
+    configReader,
+  )
   const discoveries = new DiscoveryRegistry()
   for (const dependency of dependencies) {
-    const discovery = configReader.readDiscovery(dependency)
-    logger.info(` - ${dependency}`)
-    discoveries.set(dependency, discovery)
+    const discovery = configReader.readDiscovery(
+      dependency.project,
+      dependency.chain,
+    )
+    logger.info(` - ${dependency.project} on ${dependency.chain}`)
+    discoveries.set(dependency.project, dependency.chain, discovery)
   }
 
   const ultimatePermissions = await modelPermissions(
@@ -59,12 +66,18 @@ export async function writePermissionsIntoDiscovery(
   configReader: ConfigReader,
 ) {
   const rawConfig = configReader.readRawConfig(project)
-  const discovery = configReader.readDiscovery(project)
-  combinePermissionsIntoDiscovery(discovery, permissionsOutput, {
-    skipDependentDiscoveries: !rawConfig.modelCrossChainPermissions,
-  })
+  const chains = configReader.readAllDiscoveredChainsForProject(project)
+  for (const chain of chains) {
+    const discovery = configReader.readDiscovery(project, chain)
+    combinePermissionsIntoDiscovery(discovery, permissionsOutput, {
+      skipDependentDiscoveries: !rawConfig.modelCrossChainPermissions,
+    })
 
-  const projectDiscoveryFolder = configReader.getProjectPath(project)
-  discovery.entries = discovery.entries.map((e) => sortEntry(e))
-  await saveDiscoveredJson(discovery, projectDiscoveryFolder)
+    const projectDiscoveryFolder = configReader.getProjectChainPath(
+      project,
+      chain,
+    )
+    discovery.entries = discovery.entries.map((e) => sortEntry(e))
+    await saveDiscoveredJson(discovery, projectDiscoveryFolder)
+  }
 }

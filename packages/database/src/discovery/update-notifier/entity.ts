@@ -1,5 +1,5 @@
 import type { DiscoveryDiff } from '@l2beat/discovery'
-import { UnixTime } from '@l2beat/shared-pure'
+import { ChainId, UnixTime } from '@l2beat/shared-pure'
 import type { Insertable, Selectable } from 'kysely'
 import type { UpdateNotifier } from '../../kysely/generated/types'
 
@@ -10,6 +10,7 @@ export interface UpdateNotifierRecord {
   projectId: string
   timestamp: UnixTime
   diff: DiscoveryDiff[]
+  chainId: ChainId
 }
 
 export function toRow(
@@ -19,6 +20,7 @@ export function toRow(
     projectId: record.projectId,
     timestamp: UnixTime.toDate(record.timestamp),
     diffJsonBlob: JSON.stringify(record.diff),
+    chainId: +record.chainId,
   }
 }
 
@@ -32,5 +34,6 @@ export function toRecord(
     projectId: row.projectId,
     timestamp: UnixTime.fromDate(row.timestamp),
     diff: row.diffJsonBlob as unknown as DiscoveryDiff[],
+    chainId: ChainId(row.chainId),
   }
 }

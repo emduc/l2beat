@@ -20,75 +20,99 @@ export class UpdateDiffer {
     this.logger = this.logger.for(this)
   }
 
-  async runForProject(projectId: string, timestamp: UnixTime) {
-    const onDiskDiscovery = this.getOnDiskDiscovery(projectId)
-    const latestDiscovery = this.discoveryOutputCache.get(projectId)
-    if (!latestDiscovery) {
-      this.logger.error(
-        'No latest discovery found. This should never happen.',
-        { projectId },
-      )
-      return
-    }
-
-    if (onDiskDiscovery.timestamp > latestDiscovery.timestamp) {
-      this.logger.info(
-        'On disk discovery is newer than latest discovery. Skipping.',
-        { projectId },
-      )
-      return
-    }
-
-    const onDiskContracts = [
-      ...onDiskDiscovery.entries,
-      ...(onDiskDiscovery.sharedModules ?? []).flatMap(
-        (module) => this.getOnDiskDiscovery(module).entries,
-      ),
-    ]
-
-    const latestContracts = [
-      ...latestDiscovery.entries,
-      ...(latestDiscovery.sharedModules ?? []).flatMap(
-        (module) => this.discoveryOutputCache.get(module)?.entries ?? [],
-      ),
-    ]
-
-    const diff = diffDiscovery(onDiskContracts, latestContracts)
-    const diffBaseTimestamp = onDiskDiscovery.timestamp
-    const diffHeadTimestamp = latestDiscovery.timestamp
-
-    const updateDiffs = this.getUpdateDiffs(
-      diff,
-      latestContracts,
-      projectId,
-      timestamp,
-      diffBaseTimestamp,
-      diffHeadTimestamp,
-    )
-
-    if (updateDiffs.length === 0) {
-      this.logger.info('No changes in project', {
-        projectId,
+  async runForProject(
+    projectId: string,
+    chains: string[],
+    timestamp: UnixTime,
+  ) {
+    for (const chain of chains) {
+      const onDiskDiscovery = this.getOnDiskDiscovery({
+        name: projectId,
+        chain,
       })
-      await this.db.updateDiff.deleteByProjectAndChain(projectId)
-      return
-    }
+      const latestDiscovery = this.discoveryOutputCache.get(projectId, chain)
+      if (!latestDiscovery) {
+        this.logger.error(
+          'No latest discovery found. This should never happen.',
+          {
+            projectId,
+            chain,
+          },
+        )
+        return
+      }
 
-    await this.db.transaction(async () => {
-      await this.db.updateDiff.deleteByProjectAndChain(projectId)
-      await this.db.updateDiff.insertMany(updateDiffs)
+      if (onDiskDiscovery.timestamp > latestDiscovery.timestamp) {
+        this.logger.info(
+          'On disk discovery is newer than latest discovery. Skipping.',
+          {
+            projectId,
+            chain,
+          },
+        )
+        return
+      }
 
-      this.logger.info('Inserted update diffs', {
+      const onDiskContracts = [
+        ...onDiskDiscovery.entries,
+        ...(onDiskDiscovery.sharedModules ?? []).flatMap(
+          (module) =>
+            this.getOnDiskDiscovery({
+              name: module,
+              chain,
+            }).entries,
+        ),
+      ]
+
+      const latestContracts = [
+        ...latestDiscovery.entries,
+        ...(latestDiscovery.sharedModules ?? []).flatMap(
+          (module) =>
+            this.discoveryOutputCache.get(module, chain)?.entries ?? [],
+        ),
+      ]
+
+      const diff = diffDiscovery(onDiskContracts, latestContracts)
+      const diffBaseTimestamp = onDiskDiscovery.timestamp
+      const diffHeadTimestamp = latestDiscovery.timestamp
+
+      const updateDiffs = this.getUpdateDiffs(
+        diff,
+        latestContracts,
         projectId,
-        updateDiffs: updateDiffs.length,
+        chain,
+        timestamp,
+        diffBaseTimestamp,
+        diffHeadTimestamp,
+      )
+
+      if (updateDiffs.length === 0) {
+        this.logger.info('No changes in project', {
+          projectId,
+          chain,
+        })
+        await this.db.updateDiff.deleteByProjectAndChain(projectId, chain)
+        return
+      }
+
+      await this.db.transaction(async () => {
+        await this.db.updateDiff.deleteByProjectAndChain(projectId, chain)
+        await this.db.updateDiff.insertMany(updateDiffs)
+
+        this.logger.info('Inserted update diffs', {
+          projectId,
+          chain,
+          updateDiffs: updateDiffs.length,
+        })
       })
-    })
+    }
   }
 
   getUpdateDiffs(
     diff: DiscoveryDiff[],
     latestContracts: EntryParameters[],
     projectId: string,
+    chain: string,
     timestamp: UnixTime,
     diffBaseTimestamp: number,
     diffHeadTimestamp: number,
@@ -139,6 +163,7 @@ export class UpdateDiffer {
         projectId,
         type: 'implementationChange',
         address: address,
+        chain,
         timestamp,
         diffBaseTimestamp,
         diffHeadTimestamp,
@@ -150,6 +175,7 @@ export class UpdateDiffer {
         projectId,
         type: 'highSeverityFieldChange',
         address: address,
+        chain,
         timestamp,
         diffBaseTimestamp,
         diffHeadTimestamp,
@@ -161,6 +187,7 @@ export class UpdateDiffer {
         projectId,
         type: 'ultimateUpgraderChange',
         address: address,
+        chain,
         timestamp,
         diffBaseTimestamp,
         diffHeadTimestamp,
@@ -172,6 +199,7 @@ export class UpdateDiffer {
         projectId,
         type: 'becameVerified',
         address,
+        chain,
         timestamp,
         diffBaseTimestamp,
         diffHeadTimestamp,
@@ -181,7 +209,13 @@ export class UpdateDiffer {
     return updateDiffs
   }
 
-  getOnDiskDiscovery(name: string): DiscoveryOutput {
-    return this.configReader.readDiscovery(name)
+  getOnDiskDiscovery({
+    name,
+    chain,
+  }: {
+    name: string
+    chain: string
+  }): DiscoveryOutput {
+    return this.configReader.readDiscovery(name, chain)
   }
 }

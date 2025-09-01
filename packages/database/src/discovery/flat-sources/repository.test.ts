@@ -1,4 +1,4 @@
-import { Hash256 } from '@l2beat/shared-pure'
+import { ChainId, Hash256 } from '@l2beat/shared-pure'
 import { expect } from 'earl'
 
 import { describeDatabase } from '../../test/database'
@@ -16,10 +16,12 @@ describeDatabase(FlatSourcesRepository.name, (db) => {
 
   describe(FlatSourcesRepository.prototype.upsert.name, () => {
     const projectId = 'project'
+    const chainId = ChainId.ETHEREUM
 
     it('basic insert', async () => {
       const flatRecord: FlatSourcesRecord = {
         projectId,
+        chainId,
         timestamp: -1,
         contentHash: CONTENT_HASH,
         flat: {},
@@ -28,13 +30,14 @@ describeDatabase(FlatSourcesRepository.name, (db) => {
       await repository.upsert(flatRecord)
       await repository.upsert(flatRecord)
 
-      const latest = await repository.get(projectId)
+      const latest = await repository.get(projectId, chainId)
       expect(latest).toEqual(flatRecord)
     })
 
     it('two inserts, update the timestamp but not the flat', async () => {
       const flatRecord: FlatSourcesRecord = {
         projectId,
+        chainId,
         timestamp: 1,
         contentHash: CONTENT_HASH,
         flat: { key: 'before' },
@@ -42,7 +45,7 @@ describeDatabase(FlatSourcesRepository.name, (db) => {
       await repository.upsert(flatRecord)
 
       await repository.upsert(flatRecord)
-      let latest = await repository.get(projectId)
+      let latest = await repository.get(projectId, chainId)
       expect(latest).toEqual(flatRecord)
 
       await repository.upsert({
@@ -51,7 +54,7 @@ describeDatabase(FlatSourcesRepository.name, (db) => {
         flat: { key: 'after' },
       })
 
-      latest = await repository.get(projectId)
+      latest = await repository.get(projectId, chainId)
       expect(latest).toEqual({
         ...flatRecord,
         timestamp: 2,
@@ -63,6 +66,7 @@ describeDatabase(FlatSourcesRepository.name, (db) => {
 
       const flatRecord: FlatSourcesRecord = {
         projectId,
+        chainId,
         timestamp: 1,
         contentHash: CONTENT_HASH,
         flat: { key: 'before' },
@@ -70,7 +74,7 @@ describeDatabase(FlatSourcesRepository.name, (db) => {
       await repository.upsert(flatRecord)
 
       await repository.upsert(flatRecord)
-      let latest = await repository.get(projectId)
+      let latest = await repository.get(projectId, chainId)
       expect(latest).toEqual(flatRecord)
 
       const newRecord = {
@@ -81,7 +85,7 @@ describeDatabase(FlatSourcesRepository.name, (db) => {
       }
 
       await repository.upsert(newRecord)
-      latest = await repository.get(projectId)
+      latest = await repository.get(projectId, chainId)
       expect(latest).toEqual(newRecord)
     })
   })

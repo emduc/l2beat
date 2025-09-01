@@ -79,7 +79,7 @@ export function CodePanel() {
 
   return (
     <div className="flex h-full w-full select-none flex-col">
-      {showRediscoverInfo && <RediscoverPrompt />}
+      {showRediscoverInfo && <RediscoverPrompt chain={selected.chain} />}
       <EditorView
         editorId="code-panel"
         files={files}

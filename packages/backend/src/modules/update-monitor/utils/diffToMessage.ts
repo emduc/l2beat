@@ -6,11 +6,12 @@ export function diffToMessage(
   name: string,
   diffs: DiscoveryDiff[],
   timestamp: number,
+  chain: string,
   dependents: string[],
   nonce?: number,
   trackedTxsAffected?: boolean,
 ): string {
-  const header = getHeader(name, timestamp, nonce)
+  const header = getHeader(name, chain, timestamp, nonce)
   const dependentsMessage = getDependentsMessage(dependents)
   const trackedTxsMessage = trackedTxsAffected
     ? getTrackedTxsMessage()
@@ -25,12 +26,18 @@ export function diffToMessage(
   return `${header}${dependentsMessage}${trackedTxsMessage || ''}${message}`
 }
 
-function getHeader(name: string, timestamp: UnixTime, nonce?: number) {
+function getHeader(
+  name: string,
+  chain: string,
+  timestamp: UnixTime,
+  nonce?: number,
+) {
   name = wrapBoldAndItalic(name)
+  chain = wrapBoldAndItalic(chain)
   if (nonce === undefined) {
-    return `${name} | detected changes`
+    return `${name} | detected changes on chain: ${chain}`
   }
-  return `Changes: ${name} at timestamp ${timestamp}`
+  return `Changes: ${name}:${chain} at timestamp ${timestamp}`
 }
 
 function getDependentsMessage(dependents: string[]) {

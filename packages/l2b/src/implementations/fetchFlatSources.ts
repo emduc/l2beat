@@ -63,7 +63,11 @@ export function saveIntoDirectory(
   )
 
   for (const project of flat) {
-    const outputPath = path.join(outputDirectory, project.projectId)
+    const outputPath = path.join(
+      outputDirectory,
+      project.projectId,
+      project.chainName,
+    )
     mkdirSync(outputPath, { recursive: true })
 
     for (const filePath of Object.keys(project.flat)) {
@@ -87,7 +91,12 @@ export function saveIntoDiscovery(
   logger.info(chalk.green('Saving into discovery...'))
 
   for (const project of flat) {
-    const outputPath = path.join(discoveryPath, project.projectId, '.flat')
+    const outputPath = path.join(
+      discoveryPath,
+      project.projectId,
+      project.chainName,
+      '.flat',
+    )
     if (existsSync(outputPath)) {
       rmSync(outputPath, { recursive: true })
     }

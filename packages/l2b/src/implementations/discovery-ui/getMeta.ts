@@ -10,11 +10,9 @@ export type ContractsMeta = Record<
 
 export function getMeta(discoveries: DiscoveryOutput[]): ContractsMeta {
   const meta: Record<string, { name?: string; type: ApiAddressType }> = {}
-  const chains = new Set<string>()
   for (const discovery of discoveries) {
     for (const entry of discovery.entries) {
       const address = entry.address
-      chains.add(ChainSpecificAddress.longChain(entry.address))
       if (entry.type === 'EOA') {
         meta[address] = { name: entry.name || undefined, type: 'EOA' }
       } else {
@@ -24,12 +22,8 @@ export function getMeta(discoveries: DiscoveryOutput[]): ContractsMeta {
         }
       }
     }
-  }
-
-  for (const chain of chains) {
-    const zero = ChainSpecificAddress.ZERO(chain)
+    const zero = ChainSpecificAddress.ZERO(discovery.chain)
     meta[zero] = { name: 'ZERO', type: 'Unknown' }
   }
-
   return meta
 }
