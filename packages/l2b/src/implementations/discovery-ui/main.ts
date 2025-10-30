@@ -9,6 +9,7 @@ import { ChainSpecificAddress } from '@l2beat/shared-pure'
 import { v as z } from '@l2beat/validate'
 import express from 'express'
 import type { Server } from 'http'
+import * as fs from 'fs'
 import path, { join } from 'path'
 import { attachConfigRouter } from './configs/router'
 import { DiffoveryController } from './diffovery/DiffoveryController'
@@ -30,6 +31,10 @@ import {
 import { generatePermissionsReport } from './defidisco/generatePermissionsReport'
 import { filterDefiProjects } from './defidisco/defiProjectFilter'
 import { detectPermissionsWithAI, combineSourceFiles } from './defidisco/aiPermissionDetection'
+import {
+  resolvePermissionsForProject,
+  saveResolvedPermissions,
+} from './defidisco/clingoPermissionResolution'
 import {
   attachTemplateRouter,
   listTemplateFilesSchema,
@@ -440,6 +445,76 @@ export function runDiscoveryUi({ readonly }: { readonly: boolean }) {
     } catch (error) {
       console.error('Error updating contract tags:', error)
       res.status(500).json({ error: 'Failed to update contract tags' })
+    }
+  })
+
+  // Resolved permissions endpoints
+  app.get('/api/projects/:project/resolved-permissions', (req, res) => {
+    const paramsValidation = projectParamsSchema.safeParse(req.params)
+    if (!paramsValidation.success) {
+      res.status(400).json({ errors: paramsValidation.message })
+      return
+    }
+    const { project } = paramsValidation.data
+
+    try {
+      const resolvedPath = path.join(paths.discovery, project, 'resolved-permissions.json')
+
+      // Check if file exists
+      if (!fs.existsSync(resolvedPath)) {
+        res.status(404).json({ error: 'Resolved permissions not found. Run resolution first.' })
+        return
+      }
+
+      const fileContent = fs.readFileSync(resolvedPath, 'utf8')
+      const response = JSON.parse(fileContent)
+      res.json(response)
+    } catch (error) {
+      console.error('Error loading resolved permissions:', error)
+      res.status(500).json({ error: 'Failed to load resolved permissions' })
+    }
+  })
+
+  app.post('/api/projects/:project/resolve-permissions', async (req, res) => {
+    if (readonly) {
+      res.status(403).json({ error: 'Server is in readonly mode' })
+      return
+    }
+
+    const paramsValidation = projectParamsSchema.safeParse(req.params)
+    if (!paramsValidation.success) {
+      res.status(400).json({ errors: paramsValidation.message })
+      return
+    }
+    const { project } = paramsValidation.data
+
+    try {
+      console.log(`Resolving permissions for project: ${project} using Clingo`)
+
+      // Run Clingo-based resolution
+      const resolved = await resolvePermissionsForProject(paths, project)
+
+      // Save to file
+      saveResolvedPermissions(paths, project, resolved)
+
+      console.log(`Resolved permissions saved for ${project}`)
+      res.json({
+        success: true,
+        message: 'Permissions resolved successfully using Clingo',
+        stats: {
+          contractsWithPermissions: Object.keys(resolved.contracts).length,
+          totalFunctions: Object.values(resolved.contracts).reduce(
+            (sum, contract) => sum + contract.functions.length,
+            0
+          )
+        }
+      })
+    } catch (error) {
+      console.error('Error resolving permissions:', error)
+      res.status(500).json({
+        error: 'Failed to resolve permissions',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      })
     }
   })
 

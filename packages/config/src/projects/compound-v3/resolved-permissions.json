@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "lastModified": "2025-10-15T16:57:21.094Z",
+  "generatedFrom": {
+    "permissionOverridesVersion": "1.0",
+    "discoveredJsonHash": "8c153b9f1c00f8b9"
+  },
+  "contracts": {
+    "eth:0xc3d688B66703497DAA19211EEdff47f25384cdc3": {
+      "functions": [
+        {
+          "functionName": "changeAdmin",
+          "directOwners": [
+            "eth:0x1EC63B5883C3481134FD50D5DAebc83Ecd2E8779"
+          ],
+          "ultimateOwners": [
+            {
+              "address": "eth:0x1EC63B5883C3481134FD50D5DAebc83Ecd2E8779",
+              "addressType": "Contract",
+              "via": [],
+              "delays": [],
+              "cumulativeDelay": 0,
+              "cumulativeDelayFormatted": "0s"
+            }
+          ],
+          "warnings": []
+        }
+      ]
+    }
+  }
+}

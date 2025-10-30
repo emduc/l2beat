@@ -225,8 +225,32 @@ export interface PermissionOverride {
 //   "@governor.accessControl.PAUSER_ROLE.members" - follow governor field, get role members
 //   "eth:0x123...acl.permissions[eth:0x456][ROLE].entities" - absolute address for complex structures
 //   "$self" - current contract itself is the owner (shorthand for no value path)
+
+// Permission types - matches L2BEAT's permission system
+// Only "act" permissions chain transitively in permission resolution
+export type PermissionType =
+  // Base permissions
+  | 'member'      // Membership in a group/multisig
+  | 'act'         // Can perform actions (transitive) - only for EOAs/Multisigs
+  | 'admin'       // Administrative control (non-transitive) - for contract-to-contract
+  | 'interact'    // Can interact with contract
+  | 'upgrade'     // Can upgrade contract
+  // Role-specific permissions
+  | 'challenge'   // Can challenge state
+  | 'guard'       // Security guardian role
+  | 'propose'     // Can propose changes
+  | 'sequence'    // Can sequence transactions
+  | 'validate'    // Can validate state
+  | 'disperse'    // Can disperse funds
+  | 'relayDA'     // Can relay data availability
+  | 'operateLinea' // Linea operator
+  | 'fastconfirm' // Fast confirmation role
+  | 'configure'   // Can configure parameters
+  | 'whitelist'   // Can whitelist addresses
+
 export interface OwnerDefinition {
   path: string              // Unified path expression
+  permissionType?: PermissionType  // Permission type (defaults to "act" for backward compatibility)
 }
 
 export interface ApiPermissionOverridesUpdateRequest {
@@ -264,4 +288,42 @@ export interface ApiContractTagsUpdateRequest {
   isExternal?: boolean
   centralization?: 'high' | 'medium' | 'low'
   mitigations?: 'complete' | 'partial' | 'none'
+}
+
+// Resolved permissions types
+export interface ApiResolvedPermissionsResponse {
+  version: string
+  lastModified: string
+  generatedFrom: {
+    permissionOverridesVersion: string
+    discoveredJsonHash: string
+  }
+  contracts: Record<string, ResolvedContractPermissions>
+}
+
+export interface ResolvedContractPermissions {
+  functions: ResolvedFunctionPermission[]
+}
+
+export interface ResolvedFunctionPermission {
+  functionName: string
+  directOwners: string[]  // Addresses resolved from ownerDefinitions
+  ultimateOwners: UltimateOwner[]
+  warnings: string[]
+}
+
+export interface UltimateOwner {
+  address: string
+  addressType: ApiAddressType  // Reuse existing type
+  via: ViaStep[]
+  delays: number[]  // Individual delays in seconds at each step
+  cumulativeDelay: number  // Sum of all delays
+  cumulativeDelayFormatted?: string  // Human-readable format
+}
+
+export interface ViaStep {
+  address: string
+  addressType: ApiAddressType
+  delay?: number  // Delay in seconds
+  delayFormatted?: string  // Human-readable format
 }

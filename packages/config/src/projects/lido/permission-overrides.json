@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "lastModified": "2025-10-13T21:38:30.281Z",
+  "lastModified": "2025-10-17T12:05:14.819Z",
   "contracts": {
     "eth:0xfFA96D84dEF2EA035c7AB153D8B991128e3d72fD": {
       "functions": [
@@ -67,7 +67,7 @@
               "path": "$self.getOwner"
             }
           ],
-          "timestamp": "2025-10-07T16:31:11.386Z"
+          "timestamp": "2025-10-17T12:05:14.819Z"
         },
         {
           "functionName": "addGuardians",

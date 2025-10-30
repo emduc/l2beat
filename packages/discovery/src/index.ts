@@ -44,6 +44,7 @@ export { HandlerExecutor } from './discovery/handlers/HandlerExecutor'
 export {
   type ClingoFact,
   type ClingoValue,
+  parseClingoFact,
 } from './discovery/modelling/clingoparser'
 export { combinePermissionsIntoDiscovery } from './discovery/modelling/combinePermissionsIntoDiscovery'
 export { KnowledgeBase } from './discovery/modelling/KnowledgeBase'
@@ -55,6 +56,7 @@ export {
   generatePermissionConfigHash,
   getDependenciesToDiscoverForProject,
   modelPermissions,
+  runClingoForSingleModel,
 } from './discovery/modelling/modelPermissions'
 export { diffContracts, type FieldDiff } from './discovery/output/diffContracts'
 export {
